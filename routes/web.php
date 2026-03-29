@@ -1,44 +1,52 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\LogController;
-use App\Http\Controllers\LocationController; // 1つにまとめました
+use App\Http\Controllers\JournalController;
+use App\Http\Controllers\ResonanceController;
+use App\Http\Controllers\MonologueController; 
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| IORI: 2026-03-29 統合ルート
 |--------------------------------------------------------------------------
+| 
+| 1. DashboardをMonologueControllerに接続し、データをVueに渡すように変更。
+| 2. Monologueの保存(store)と削除(destroy)を認証済みグループに集約。
+|
 */
 
-// 初期画面
-Route::get('/', function () {
-    return view('welcome');
-});
+// 1. HOME: 綴る・辿る・Admin一覧
+// Dashboardを開いた際に、投稿リストを一緒に読み込みます
+Route::get('/dashboard', [MonologueController::class, 'dashboard'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
-// ダッシュボード（認証済みユーザー用）
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// 2. SELECT: どの眼差しで、辿りますか？
+Route::get('/explore', function () {
+    return Inertia::render('Explore');
+})->middleware(['auth'])->name('explore');
 
-// プロフィール・ログ機能（ログインが必要な機能）
+// 3. MAP: 視座の同期（漆黒の地図）
+Route::get('/resonance/show/{id?}', [ResonanceController::class, 'show'])
+    ->middleware(['auth'])
+    ->name('resonance.show');
+
+// --- 認証が必要なデータ操作 ---
 Route::middleware('auth')->group(function () {
+    // プロフィール関連
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
-    Route::resource('logs', LogController::class);
+    // ジャーナル（対話）関連
+    Route::get('/journal', [JournalController::class, 'index'])->name('journal.index');
+    Route::post('/journal/chat', [JournalController::class, 'chat'])->name('journal.chat');
+
+    // 🌟 Monologue（綴る・管理）関連
+    // 保存処理
+    Route::post('/monologues', [MonologueController::class, 'store'])->name('monologues.store');
+    // 削除処理
+    Route::delete('/monologues/{monologue}', [MonologueController::class, 'destroy'])->name('monologues.destroy');
 });
 
-// --- IORI 聖地探査セクション ---
-
-// 探査画面の表示
-Route::get('/iori', function () {
-    return view('iori.index');
-});
-
-// 現在地と聖地の距離計算（API通信用）
-Route::post('/check-distance', [LocationController::class, 'check']);
-
-// 認証関連のルート読み込み
 require __DIR__.'/auth.php';

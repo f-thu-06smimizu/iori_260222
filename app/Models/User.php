@@ -45,4 +45,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-}
+
+    /**
+     * ここに追加しました：UserとMonologueの紐付け
+     */
+    public function monologues()
+    {
+        return $this->hasMany(Monologue::class);
+    }
+} // ← 必ずこの閉じカッコが一番最後に来るようにします
